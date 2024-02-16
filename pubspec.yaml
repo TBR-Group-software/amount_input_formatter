@@ -1,8 +1,8 @@
 name: amount_input_formatter
 description: "A new Flutter package project."
 version: 0.0.1
-repository: https://github.com/TBR-Group-software/
-issue_tracker: https://github.com/TBR-Group-software/
+repository: https://github.com/TBR-Group-software/amount_input_formatter
+issue_tracker: https://github.com/TBR-Group-software/amount_input_formatter/issues
 
 environment:
   sdk: '>=3.2.6 <4.0.0'
