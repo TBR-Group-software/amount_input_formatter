@@ -22,7 +22,7 @@ void main() {
 
   final formatter2 = AmountInputFormatter();
   test(
-    'Set number for formatter',
+    'Set number for empty formatter',
     () {
       formatter2.setNumber(222.2222);
       expect(formatter2.doubleValue, 222.2222);
@@ -35,7 +35,7 @@ void main() {
     fractionalDigits: 0,
   );
   test(
-    'Initial set value with no fractional digits, ',
+    'Initial set value with no fractional digits, and edit afterward',
     () {
       const originalText = '89,898,999';
       expect(formatter3.formattedValue, originalText);
@@ -54,6 +54,34 @@ void main() {
       );
       expect(formatter3.formattedValue, newText);
       expect(formatter3.doubleValue, 8989899);
+    },
+  );
+
+  final formatter4 = AmountInputFormatter(
+    initialValue: 12345.098767,
+    fractionalDigits: 4,
+    thousandsSeparator: ' '
+  );
+  test(
+    'Initial set value, edit with decimal separator removal',
+        () {
+      const originalText = '12 345.0987';
+      expect(formatter4.doubleValue, 12345.098767);
+      expect(formatter4.formattedValue, originalText);
+
+      const newText = '12 3450987';
+      formatter4.formatEditUpdate(
+        const TextEditingValue(
+          text: originalText,
+          selection: TextSelection.collapsed(offset: 7),
+        ),
+        const TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: 6),
+        ),
+      );
+      expect(formatter4.formattedValue, '12 345.0000');
+      expect(formatter4.doubleValue, 12345.0);
     },
   );
 }
