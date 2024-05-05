@@ -7,9 +7,8 @@ void main() {
     initialValue: 1111112.11,
     fractionalDigits: 3,
   );
-
   test(
-    'Initial set number value with new value set',
+    'Initially set number value with new value set',
     () {
       expect(formatter1.formattedValue, '1,111,112.110');
       expect(formatter1.doubleValue, 1111112.11);
@@ -35,7 +34,7 @@ void main() {
     fractionalDigits: 0,
   );
   test(
-    'Initial set value with no fractional digits, and edit afterward',
+    'Initially set value with no fractional digits, and edit afterward',
     () {
       const originalText = '89,898,999';
       expect(formatter3.formattedValue, originalText);
@@ -60,11 +59,11 @@ void main() {
   final formatter4 = AmountInputFormatter(
     initialValue: 12345.098767,
     fractionalDigits: 4,
-    thousandsSeparator: ' '
+    thousandsSeparator: ' ',
   );
   test(
-    'Initial set value, edit with decimal separator removal',
-        () {
+    'Initially set value; Edit with decimal separator removal',
+    () {
       const originalText = '12 345.0987';
       expect(formatter4.doubleValue, 12345.098767);
       expect(formatter4.formattedValue, originalText);
