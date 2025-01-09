@@ -1,53 +1,27 @@
 import 'dart:developer';
 
-import 'package:example/pages/advanced_example_page.dart';
-import 'package:example/pages/rtl_axample_page.dart';
-import 'package:flutter/material.dart';
 import 'package:amount_input_formatter/amount_input_formatter.dart';
+import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const AmountFormatterExampleApp());
-}
-
-class AmountFormatterExampleApp extends StatelessWidget {
-  const AmountFormatterExampleApp({super.key});
+class AdvancedExamplePage extends StatefulWidget {
+  const AdvancedExamplePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Amount input Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-        ),
-        useMaterial3: true,
-      ),
-      home: const GeneralExamplePage(),
-    );
-  }
+  State<AdvancedExamplePage> createState() => _AdvancedExamplePageState();
 }
 
-class GeneralExamplePage extends StatefulWidget {
-  const GeneralExamplePage({
-    super.key,
-  });
-
-  @override
-  State<GeneralExamplePage> createState() => _GeneralExamplePageState();
-}
-
-class _GeneralExamplePageState extends State<GeneralExamplePage> {
-  final _controller = TextEditingController();
-  final _formatter = AmountInputFormatter(
-    integralLengthLimiter: 10,
-    integralPartSeparator: ',',
-    fractionalDigits: 3,
-    decimalSeparator: '.',
+class _AdvancedExamplePageState extends State<AdvancedExamplePage> {
+  final AmountInputFormatter _formatter = AmountInputFormatter(
+    initialValue: 1234567890.0987654321,
+    fractionalDigits: 10,
   );
+  final TextEditingController _controller = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+
+    _controller.syncWithFormatter(formatter: _formatter);
   }
 
   @override
@@ -55,7 +29,7 @@ class _GeneralExamplePageState extends State<GeneralExamplePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Amount Input Formatter'),
+        title: const Text('Advanced Example'),
       ),
       body: Center(
         child: Padding(
@@ -67,9 +41,9 @@ class _GeneralExamplePageState extends State<GeneralExamplePage> {
               ListenableBuilder(
                 listenable: _controller,
                 builder: (
-                  context,
-                  child,
-                ) {
+                    context,
+                    child,
+                    ) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -107,34 +81,6 @@ class _GeneralExamplePageState extends State<GeneralExamplePage> {
               ),
             ],
           ),
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const AdvancedExamplePage(),
-                  ),
-                );
-              },
-              child: const Text('Advanced Example'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const RtlExamplePage(),
-                  ),
-                );
-              },
-              child: const Text('RTL Example'),
-            ),
-          ],
         ),
       ),
     );
