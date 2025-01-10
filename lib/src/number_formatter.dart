@@ -45,12 +45,6 @@ class NumberFormatter {
     }
 
     final doubleParts = initialValue.toDouble().abs().toString().split(kDot);
-    final formattedInteger = '${initialValue < 0 ? '-' : ''}'
-        '${_processIntegerPart(
-      integerPart: doubleParts.first,
-      thSeparator: integralPartSeparator,
-      intSpDigits: intSeparatedDigitsCount,
-    )}';
 
     return NumberFormatter._(
       lengthLimiter: integralLengthLimiter,
@@ -59,12 +53,18 @@ class NumberFormatter {
       decimalSeparator: decimalSeparator,
       fractionalDigits: fractionalDigits,
       initialValue: initialValue.toDouble(),
-      initialFormattedValue: '$formattedInteger${_processDecimalPart(
+      initialFormattedValue: '${initialValue < 0 ? '-' : ''}'
+          '${_processIntegerPart(
+        integerPart: doubleParts.first,
+        thSeparator: integralPartSeparator,
+        intSpDigits: intSeparatedDigitsCount,
+      )}'
+          '${_processDecimalPart(
         decimalPart: doubleParts.last,
         ftlDigits: fractionalDigits,
         dcSeparator: decimalSeparator,
       )}',
-      indexOfDot: formattedInteger.length,
+      indexOfDot: doubleParts.first.length,
     );
   }
 
@@ -195,17 +195,13 @@ class NumberFormatter {
     required String dcSeparator,
   }) {
     if (ftlDigits <= 0) return kEmptyValue;
-    print('HERE');
 
     if (decimalPart.length > ftlDigits) {
-      print('HERE1');
       return '$dcSeparator${decimalPart.substring(0, ftlDigits)}';
     } else if (decimalPart.length == ftlDigits) {
-      print('HERE2');
       return '$dcSeparator$decimalPart';
     }
 
-    print('HERE3: $decimalPart');
     final builder = StringBuffer('$dcSeparator$decimalPart');
     for (var i = 0; i < ftlDigits - decimalPart.length; i++) {
       builder.write(kZeroValue);
@@ -213,25 +209,28 @@ class NumberFormatter {
     return builder.toString();
   }
 
-  String _processNumberValue(double? inputNumber) {
-    print(inputNumber);
+  String _processNumberValue({
+    double? inputNumber,
+    List<String>? doubleParts,
+  }) {
     if (inputNumber == null) {
       _doubleValue = 0;
       return _formattedNum = kEmptyValue;
     }
 
     _doubleValue = inputNumber;
-    final doubleParts = inputNumber.abs().toString().split(kDot);
+    doubleParts ??= inputNumber.abs().toString().split(kDot);
 
-    final integerPart = '${inputNumber < 0 ? '-' : ''}${_processIntegerPart(
+    // Set the index of dot to the length of the integral part of the number.
+    _indexOfDot = doubleParts.first.length;
+
+    return _formattedNum = '${inputNumber < 0 ? '-' : ''}'
+        '${_processIntegerPart(
       integerPart: doubleParts.first,
       thSeparator: intSeparator,
       intSpDigits: intSpDigits,
-    )}';
-
-    // Set the index of dot to the length of the integral part of the number.
-    _indexOfDot = integerPart.length;
-    return _formattedNum = '$integerPart${_processDecimalPart(
+    )}'
+        '${_processDecimalPart(
       decimalPart: doubleParts.last,
       ftlDigits: ftlDigits,
       dcSeparator: dcSeparator,
@@ -243,42 +242,46 @@ class NumberFormatter {
   /// it to the double value.
   String? processTextValue({
     required String textInput,
-    required int baseOffset,
   }) {
-    if (ftlDigits > 0) {
-      final indexOfDot = textInput.indexOf(dcSeparator);
-
-      if (indexOfDot < 0) {
-        textInput = textInput.substring(0, baseOffset);
-      }
-    }
-    print(textInput);
-
     final doubleParts = textInput
         .replaceAll(
           _numPattern,
           kEmptyValue,
         )
         .split(dcSeparator);
-    print(doubleParts);
+
+    if (doubleParts.length == 1) {
+      doubleParts.add(kEmptyValue);
+
+      if (ftlDigits > 0 && _indexOfDot > 0) {
+        doubleParts.first = doubleParts.first.substring(0, _indexOfDot);
+      }
+    }
 
     if (doubleParts.first.length > intLthLimiter) return null;
 
-    if (doubleParts.length == 1) doubleParts.add(kEmptyValue);
-    print(double.parse('${doubleParts.first}$kDot${doubleParts.last}'));
-    print(double.tryParse('${doubleParts.first}$kDot${doubleParts.last}'));
+    if (doubleValue == 0) {
+
+    }
+
+    if (doubleParts.last.length > ftlDigits) {
+      doubleParts.last = doubleParts.last.substring(0, ftlDigits);
+    }
 
     return _processNumberValue(
-      double.tryParse(
+      inputNumber: double.tryParse(
         '${doubleParts.first}$kDot${doubleParts.last}',
       ),
+      doubleParts: doubleParts,
     );
   }
 
   /// This method will process and format the given numerical value through the
   /// formatter.
   /// Returns the formatted string representation of the number.
-  String setNumValue(num number) => _processNumberValue(number.toDouble());
+  String setNumValue(num number) => _processNumberValue(
+        inputNumber: number.toDouble(),
+      );
 
   /// Clears Formatter data by:
   /// Setting the formatted value to empty sting;

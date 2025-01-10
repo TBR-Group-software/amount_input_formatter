@@ -98,9 +98,9 @@ class AmountInputFormatter extends TextInputFormatter {
 
     if (newText.length < oldValue.text.length) {
       offset = oldValue.text.length - newText.length > 1
-          ? oldValue.selection.extentOffset -
+          ? oldValue.selection.baseOffset -
               (oldValue.text.length - newText.length)
-          : oldValue.selection.extentOffset - 1;
+          : oldValue.selection.baseOffset - 1;
       return offset < 0 ? 0 : offset;
     }
 
@@ -118,7 +118,6 @@ class AmountInputFormatter extends TextInputFormatter {
   ) {
     final newText = formatter.processTextValue(
       textInput: newValue.text,
-      baseOffset: newValue.selection.baseOffset,
     );
 
     // If newText variable at this point equals to null that means that
