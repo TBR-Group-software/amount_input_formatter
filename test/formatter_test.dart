@@ -1,17 +1,19 @@
+import 'package:amount_input_formatter/amount_input_formatter.dart';
 import 'package:amount_input_formatter/src/amount_input_formatter.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'text_field_widget.dart';
 
 void main() {
   group(
     'A set of test designed to emulate input behaviour',
     () {
-      late AmountInputFormatter formatter;
-      setUp(() {
-        formatter = AmountInputFormatter(
-          initialValue: 1111112.11,
-        );
-      });
+      final formatter = AmountInputFormatter(
+        initialValue: 1111112.11,
+      );
+
       test(
         'Initially set number value with new value set',
         () {
@@ -81,11 +83,11 @@ void main() {
       formatter.formatEditUpdate(
         const TextEditingValue(
           text: originalText,
-          selection: TextSelection.collapsed(offset: 7),
+          selection: TextSelection.collapsed(offset: 6),
         ),
         const TextEditingValue(
           text: '12 3450987',
-          selection: TextSelection.collapsed(offset: 6),
+          selection: TextSelection.collapsed(offset: 5),
         ),
       );
       expect(formatter.formattedValue, '12 345.0000');
@@ -94,7 +96,7 @@ void main() {
   );
 
   test(
-    'Test the amount input with the long integral and decimal parts',
+    'Copy-paste with truncation of the longer decimal part',
     () {
       final formatter = AmountInputFormatter(
         fractionalDigits: 6,
@@ -108,6 +110,39 @@ void main() {
 
       expect(formatter.formattedValue, '123,456,789.987654');
       expect(formatter.doubleValue, 123456789.987654);
+    },
+  );
+
+  testWidgets(
+    'Test formatter with a TextField widget',
+    (tester) async {
+      final key = GlobalKey<TextFieldWidgetState>();
+      final textFieldPage = TextFieldWidget(
+        key: key,
+      );
+
+      await tester.pumpWidget(textFieldPage);
+
+      await tester.enterText(find.byType(TextField), '123456789.123');
+
+      const formattingResult1 = '123,456,789.123';
+      expect(key.currentState?.controller.text, formattingResult1);
+      expect(find.text(formattingResult1), findsOneWidget);
+      expect(key.currentState?.formatter.doubleValue, 123456789.123);
+
+      await tester.enterText(find.byType(TextField), '123,46,789.123');
+
+      const formattingResult2 = '12,346,789.123';
+      expect(key.currentState?.controller.text, formattingResult2);
+      expect(find.text(formattingResult2), findsOneWidget);
+      expect(key.currentState?.formatter.doubleValue, 12346789.123);
+
+      await tester.enterText(find.byType(TextField), '12,346,789123');
+
+      const formattingResult3 = '12,346,789.000';
+      expect(key.currentState?.controller.text, formattingResult3);
+      expect(find.text(formattingResult3), findsOneWidget);
+      expect(key.currentState?.formatter.doubleValue, 12346789.0);
     },
   );
 }
