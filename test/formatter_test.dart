@@ -1,6 +1,5 @@
 import 'package:amount_input_formatter/amount_input_formatter.dart';
 import 'package:amount_input_formatter/src/amount_input_formatter.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -8,7 +7,7 @@ import 'text_field_widget.dart';
 
 void main() {
   group(
-    'A set of test designed to emulate input behaviour',
+    'A set of tests designed to emulate input behaviour',
     () {
       final formatter = AmountInputFormatter(
         initialValue: 1111112.11,
@@ -73,7 +72,7 @@ void main() {
       final formatter = AmountInputFormatter(
         initialValue: 12345.098767,
         fractionalDigits: 4,
-        integralPartSeparator: ' ',
+        groupSeparator: ' ',
       );
 
       const originalText = '12 345.0987';
@@ -114,7 +113,7 @@ void main() {
   );
 
   testWidgets(
-    'Test formatter with a TextField widget',
+    'Test formatter with a TextField widget simulating user inputs',
     (tester) async {
       final key = GlobalKey<TextFieldWidgetState>();
       final textFieldPage = TextFieldWidget(
@@ -143,6 +142,32 @@ void main() {
       expect(key.currentState?.controller.text, formattingResult3);
       expect(find.text(formattingResult3), findsOneWidget);
       expect(key.currentState?.formatter.doubleValue, 12346789.0);
+    },
+  );
+
+  testWidgets(
+    'Set the initial value for the formatter and sync with '
+    'TextEditingController attached to TextField',
+    (tester) async {
+      final key = GlobalKey<TextFieldWidgetState>();
+      final textFieldPage = TextFieldWidget(
+        key: key,
+        initialValue: 12345.543,
+      );
+
+      await tester.pumpWidget(textFieldPage);
+
+      const formattingResult1 = '12,345.543';
+      expect(key.currentState?.controller.text, formattingResult1);
+      expect(find.text(formattingResult1), findsOneWidget);
+      expect(key.currentState?.formatter.doubleValue, 12345.543);
+
+      await tester.enterText(find.byType(TextField), '12,3456.543');
+
+      const formattingResult2 = '123,456.543';
+      expect(key.currentState?.controller.text, formattingResult2);
+      expect(find.text(formattingResult2), findsOneWidget);
+      expect(key.currentState?.formatter.doubleValue, 123456.543);
     },
   );
 }
