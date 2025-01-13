@@ -77,11 +77,11 @@ class NumberFormatter {
     required double? initialValue,
     required int groupedDigits,
     required int indexOfDot,
-  })  : intLthLimiter = integralLength,
-        intSeparator = groupSeparator,
-        intSpDigits = groupedDigits,
-        dcSeparator = decimalSeparator,
-        ftlDigits = fractionalDigits,
+  })  : _intLthLimiter = integralLength,
+        _intSeparator = groupSeparator,
+        _intSpDigits = groupedDigits,
+        _dcSeparator = decimalSeparator,
+        _ftlDigits = fractionalDigits,
         _formattedNum = initialFormattedValue,
         _numPattern = RegExp('[^0-9$decimalSeparator]'),
         _doubleValue = initialValue ?? 0,
@@ -89,11 +89,11 @@ class NumberFormatter {
 
   /// Default setting options for the formatter.
   NumberFormatter.defaultSettings()
-      : intLthLimiter = kIntegralLengthLimit,
-        intSeparator = kComma,
-        dcSeparator = kDot,
-        ftlDigits = 3,
-        intSpDigits = 3,
+      : _intLthLimiter = kIntegralLengthLimit,
+        _intSeparator = kComma,
+        _dcSeparator = kDot,
+        _ftlDigits = 3,
+        _intSpDigits = 3,
         _formattedNum = kEmptyValue,
         _doubleValue = 0,
         _indexOfDot = -1,
@@ -121,27 +121,45 @@ class NumberFormatter {
   static const kZeroValue = '0';
 
   /// The length limit of the integral part of the double number.
-  int intLthLimiter;
+  int _intLthLimiter;
 
   /// A separator that should be used to split thousands in integral
   /// part of the number.
-  String intSeparator;
+  String _intSeparator;
 
   /// The number of digits that should be repeatedly separated in an integral
   /// part of the number.
-  int intSpDigits;
+  int _intSpDigits;
 
   /// A separator that should be used to split decimal number at the
   /// floating point.
-  String dcSeparator;
+  String _dcSeparator;
 
   /// The length of the fractional part of the decimal number.
-  int ftlDigits;
+  int _ftlDigits;
 
   String _formattedNum;
   RegExp _numPattern;
   double _doubleValue;
   int _indexOfDot;
+
+  /// The length limit of the integral part of the double number.
+  int get intLthLimiter => _intLthLimiter;
+
+  /// A separator that should be used to split thousands in integral
+  /// part of the number.
+  String get intSeparator => _intSeparator;
+
+  /// The number of digits that should be repeatedly separated in an integral
+  /// part of the number.
+  int get intSpDigits => _intSpDigits;
+
+  /// A separator that should be used to split decimal number at the
+  /// floating point.
+  String get dcSeparator => _dcSeparator;
+
+  /// The length of the fractional part of the decimal number.
+  int get ftlDigits => _ftlDigits;
 
   /// Getter for the underlying decimal number, returns 0 in case of
   /// empty String value.
@@ -159,6 +177,44 @@ class NumberFormatter {
   /// characters to force the formatted-string-number to be correctly displayed
   /// left-to-right inside of the otherwise RTL context
   String get ltrEnforcedValue => '$lre$formattedValue$pdf';
+
+  /// The length limit of the integral part of the double number.
+  set intLthLimiter(int value) {
+    _intLthLimiter = value;
+
+    processTextValue(textInput: _formattedNum);
+  }
+
+  /// A separator that should be used to split thousands in integral
+  /// part of the number.
+  set intSeparator(String value) {
+    _intSeparator = value;
+
+    processTextValue(textInput: _formattedNum);
+  }
+
+  /// The number of digits that should be repeatedly separated in an integral
+  /// part of the number.
+  set intSpDigits(int value) {
+    _intSpDigits = value;
+
+    processTextValue(textInput: _formattedNum);
+  }
+
+  /// A separator that should be used to split decimal number at the
+  /// floating point.
+  set dcSeparator(String value) {
+    _dcSeparator = value;
+
+    processTextValue(textInput: _formattedNum);
+  }
+
+  /// The length of the fractional part of the decimal number.
+  set ftlDigits(int value) {
+    _ftlDigits = value;
+
+    processTextValue(textInput: _formattedNum);
+  }
 
   /// This method should be used to process the integral part of the
   /// double number.
