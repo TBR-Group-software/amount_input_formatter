@@ -1,11 +1,11 @@
 /// A minimalistic and configurable Number Formatter.
 class NumberFormatter {
   /// The default [NumberFormatter] factory.
-  /// [integralLengthLimiter] - sets the limit to length of integral part of
+  /// [integralLength] - sets the limit to length of integral part of
   /// the number. For example here: 11111.222 it will be the 11111
   /// part before the dot.
   /// Defaults to 24.
-  /// [integralPartSeparator] - sets the "thousands" separator symbol that
+  /// [groupSeparator] - sets the "thousands" separator symbol that
   /// should separate an integral part of the number into chunks after a
   /// certain number of characters.
   /// Defaults to ','.
@@ -13,7 +13,7 @@ class NumberFormatter {
   /// integral and decimal parts of the number. Typically it's a '.' or an ','
   /// depending on the language.
   /// Defaults to '.'.
-  /// [intSeparatedDigitsCount] - The number of digits that should be grouped in
+  /// [groupedDigits] - The number of digits that should be grouped in
   /// an integral part of the number before separation. Setting it, for example,
   /// to 3 for the number 12345.123 will result in the following formatting:
   /// 12,345.123.
@@ -24,18 +24,18 @@ class NumberFormatter {
   /// [initialValue] - the initial numerical value that is supplied to the
   /// formatter and will be processed.
   factory NumberFormatter({
-    int integralLengthLimiter = kIntegralLengthLimit,
-    String integralPartSeparator = kComma,
+    int integralLength = kIntegralLengthLimit,
+    String groupSeparator = kComma,
     String decimalSeparator = kDot,
     int fractionalDigits = 3,
-    int intSeparatedDigitsCount = 3,
+    int groupedDigits = 3,
     num? initialValue,
   }) {
     if (initialValue == null) {
       return NumberFormatter._(
-        lengthLimiter: integralLengthLimiter,
-        integralPartSeparator: integralPartSeparator,
-        intSeparatedDigitsCount: intSeparatedDigitsCount,
+        integralLength: integralLength,
+        groupSeparator: groupSeparator,
+        groupedDigits: groupedDigits,
         decimalSeparator: decimalSeparator,
         fractionalDigits: fractionalDigits,
         initialValue: 0,
@@ -47,17 +47,16 @@ class NumberFormatter {
     final doubleParts = initialValue.toDouble().abs().toString().split(kDot);
 
     return NumberFormatter._(
-      lengthLimiter: integralLengthLimiter,
-      integralPartSeparator: integralPartSeparator,
-      intSeparatedDigitsCount: intSeparatedDigitsCount,
+      integralLength: integralLength,
+      groupSeparator: groupSeparator,
+      groupedDigits: groupedDigits,
       decimalSeparator: decimalSeparator,
       fractionalDigits: fractionalDigits,
       initialValue: initialValue.toDouble(),
-      initialFormattedValue: '${initialValue < 0 ? '-' : ''}'
-          '${_processIntegerPart(
+      initialFormattedValue: '${_processIntegerPart(
         integerPart: doubleParts.first,
-        thSeparator: integralPartSeparator,
-        intSpDigits: intSeparatedDigitsCount,
+        thSeparator: groupSeparator,
+        intSpDigits: groupedDigits,
       )}'
           '${_processDecimalPart(
         decimalPart: doubleParts.last,
@@ -70,17 +69,17 @@ class NumberFormatter {
 
   /// [fractionalDigits] sets the inner [ftlDigits]
   NumberFormatter._({
-    required int lengthLimiter,
-    required String integralPartSeparator,
+    required int integralLength,
+    required String groupSeparator,
     required String decimalSeparator,
     required int fractionalDigits,
     required String initialFormattedValue,
     required double? initialValue,
-    required int intSeparatedDigitsCount,
+    required int groupedDigits,
     required int indexOfDot,
-  })  : intLthLimiter = lengthLimiter,
-        intSeparator = integralPartSeparator,
-        intSpDigits = intSeparatedDigitsCount,
+  })  : intLthLimiter = integralLength,
+        intSeparator = groupSeparator,
+        intSpDigits = groupedDigits,
         dcSeparator = decimalSeparator,
         ftlDigits = fractionalDigits,
         _formattedNum = initialFormattedValue,
@@ -118,7 +117,7 @@ class NumberFormatter {
   /// Default empty String value.
   static const kEmptyValue = '';
 
-  /// Default value of the number placeholder.
+  /// Default value '0' of the number placeholder.
   static const kZeroValue = '0';
 
   /// The length limit of the integral part of the double number.
@@ -153,13 +152,13 @@ class NumberFormatter {
   int get indexOfDot => _indexOfDot;
 
   /// Getter for the formatted String representation of the number.
-  String get formattedNum => _formattedNum;
+  String get formattedValue => _formattedNum;
 
   /// Wraps the formatted string of the number with Unicode
   /// "Left-To-Right Embedding" (LRE) and "Pop Directional Formatting" (PDF)
   /// characters to force the formatted-string-number to be correctly displayed
   /// left-to-right inside of the otherwise RTL context
-  String get ltrEnforcedValue => '$lre$formattedNum$pdf';
+  String get ltrEnforcedValue => '$lre$formattedValue$pdf';
 
   /// This method should be used to process the integral part of the
   /// double number.
@@ -171,6 +170,8 @@ class NumberFormatter {
     required String thSeparator,
     required int intSpDigits,
   }) {
+    if (integerPart.length < intSpDigits) return integerPart;
+
     final intBuffer = StringBuffer();
     for (var i = 1; i <= integerPart.length; i++) {
       intBuffer.write(integerPart[integerPart.length - i]);
@@ -202,11 +203,8 @@ class NumberFormatter {
       return '$dcSeparator$decimalPart';
     }
 
-    final builder = StringBuffer('$dcSeparator$decimalPart');
-    for (var i = 0; i < ftlDigits - decimalPart.length; i++) {
-      builder.write(kZeroValue);
-    }
-    return builder.toString();
+    return '$dcSeparator$decimalPart'
+        '${kZeroValue * (ftlDigits - decimalPart.length)}';
   }
 
   String _processNumberValue({
@@ -224,8 +222,7 @@ class NumberFormatter {
     // Set the index of dot to the length of the integral part of the number.
     _indexOfDot = doubleParts.first.length;
 
-    return _formattedNum = '${inputNumber < 0 ? '-' : ''}'
-        '${_processIntegerPart(
+    return _formattedNum = '${_processIntegerPart(
       integerPart: doubleParts.first,
       thSeparator: intSeparator,
       intSpDigits: intSpDigits,
@@ -243,6 +240,13 @@ class NumberFormatter {
   String? processTextValue({
     required String textInput,
   }) {
+    // Case when text input is deleted completely or is initially empty.
+    if (textInput.isEmpty) {
+      _indexOfDot = 1;
+      _doubleValue = 0;
+      return _formattedNum = '$kZeroValue.${kZeroValue * ftlDigits}';
+    }
+
     final doubleParts = textInput
         .replaceAll(
           _numPattern,
@@ -250,22 +254,42 @@ class NumberFormatter {
         )
         .split(dcSeparator);
 
+    // In case if there is no decimal part in the provided string
+    // representation of number.
     if (doubleParts.length == 1) {
       doubleParts.add(kEmptyValue);
 
-      if (ftlDigits > 0 && _indexOfDot > 0) {
+      // It might be the case that the user deleted the decimal point or part of
+      // the input with a decimal point was deleted with the selection range.
+      // In this case, the decimal part should be zeroed.
+      if (ftlDigits > 0 &&
+          _indexOfDot > 0 &&
+          _indexOfDot < doubleParts.first.length) {
         doubleParts.first = doubleParts.first.substring(0, _indexOfDot);
       }
+    } else if (doubleParts.last.length > ftlDigits) {
+      doubleParts.last = doubleParts.last.substring(0, ftlDigits);
     }
 
+    // In case if integral part is longer than allowed abort the formatting.
     if (doubleParts.first.length > intLthLimiter) return null;
 
-    if (doubleValue == 0) {
+    // Checks if the integer part is empty, and sets the value to '0' if true.
+    if (doubleParts.first.isEmpty) {
+      doubleParts.first = kZeroValue;
+    } else if (doubleParts.first[0] == kZeroValue &&
+        doubleParts.first.length > 1) {
+      var index = -1;
 
-    }
+      for (var i = 0; i < doubleParts.first.length; i++) {
+        if (doubleParts.first[i] != kZeroValue) break;
 
-    if (doubleParts.last.length > ftlDigits) {
-      doubleParts.last = doubleParts.last.substring(0, ftlDigits);
+        index = i;
+      }
+
+      if (index >= 0) {
+        doubleParts.first = doubleParts.first.substring(index + 1);
+      }
     }
 
     return _processNumberValue(

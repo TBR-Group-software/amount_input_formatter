@@ -8,16 +8,16 @@ import 'package:flutter/services.dart';
 /// uses no additional dependencies other than Dart and Flutter.
 class AmountInputFormatter extends TextInputFormatter {
   /// The default configurable constructor.
-  /// [integralLengthLimiter] - sets the limit to length of integral part of
+  /// [integralLength] - sets the limit to length of integral part of
   /// the number. For example here: 11111.222 it will be the 11111
   /// part before the dot.
-  /// [integralPartSeparator] - sets the "thousands" separator symbol that
+  /// [groupSeparator] - sets the "thousands" separator symbol that
   /// should separate an integral part of the number into chunks after a
   /// certain number of characters.
   /// [decimalSeparator] - sets the separator symbol that seats between the
   /// integral and decimal parts of the number. Typically it's a '.' or an ','
   /// depending on the language.
-  /// [intSeparatedDigitsCount] - The number of digits that should be grouped in
+  /// [groupedDigits] - The number of digits that should be grouped in
   /// an integral part of the number before separation. Setting it, for example,
   /// to 3 for the number 12345.123 will result in the following formatting:
   /// 12,345.123.
@@ -27,19 +27,19 @@ class AmountInputFormatter extends TextInputFormatter {
   /// formatter. Be aware that setting this value won't change the text
   /// displayed in [TextField] or the value in [TextEditingController].
   factory AmountInputFormatter({
-    int integralLengthLimiter = NumberFormatter.kIntegralLengthLimit,
-    String integralPartSeparator = NumberFormatter.kComma,
+    int integralLength = NumberFormatter.kIntegralLengthLimit,
+    String groupSeparator = NumberFormatter.kComma,
     String decimalSeparator = NumberFormatter.kDot,
-    int intSeparatedDigitsCount = 3,
+    int groupedDigits = 3,
     int fractionalDigits = 3,
     num? initialValue,
   }) {
     return AmountInputFormatter.withFormatter(
       formatter: NumberFormatter(
-        integralLengthLimiter: integralLengthLimiter,
         initialValue: initialValue,
-        integralPartSeparator: integralPartSeparator,
-        intSeparatedDigitsCount: intSeparatedDigitsCount,
+        integralLength: integralLength,
+        groupSeparator: groupSeparator,
+        groupedDigits: groupedDigits,
         decimalSeparator: decimalSeparator,
         fractionalDigits: fractionalDigits,
       ),
@@ -61,7 +61,7 @@ class AmountInputFormatter extends TextInputFormatter {
   /// Getter for the formatted String representation of the number.
   /// This value is the one that is displayed in the [TextField] and is
   /// returned from [TextEditingController.text] getter.
-  String get formattedValue => formatter.formattedNum;
+  String get formattedValue => formatter.formattedValue;
 
   /// Getter that wraps the formatted string of the number with Unicode
   /// "Left-To-Right Embedding" (LRE) and "Pop Directional Formatting" (PDF)
@@ -76,7 +76,9 @@ class AmountInputFormatter extends TextInputFormatter {
   }) {
     // Assuming that it is the start of the input set the selection to the end
     // of the integer part.
-    if (doubleValue <= 9 && doubleValue >= -9) return formatter.indexOfDot;
+    if (oldValue.selection.baseOffset <= 1 && formatter.doubleValue <= 9) {
+      return formatter.indexOfDot;
+    }
 
     // Case if the overall text length didn't change
     // (i.e. one character replacement).
@@ -108,6 +110,7 @@ class AmountInputFormatter extends TextInputFormatter {
         ? oldValue.selection.baseOffset +
             (newText.length - oldValue.text.length)
         : oldValue.selection.baseOffset + 1;
+
     return offset > newText.length ? newText.length - 1 : offset;
   }
 
@@ -137,13 +140,30 @@ class AmountInputFormatter extends TextInputFormatter {
     );
   }
 
-  /// This method will process and format the given numerical value through the
+  /// Processes and formats the given numerical value through the
   /// formatter.
   /// Returns the formatted string representation of the number.
   ///
   /// Be aware that calling this method won't change the value of the
   /// [TextField] to which this formatter is attached to.
-  String setNumber(num number) => formatter.setNumValue(number);
+  /// Pass the [TextEditingController] used with this formatter to the
+  /// [attachedController] argument to sync the [TextField] value with
+  /// the formatter.
+  String setNumber(
+    num number, {
+    TextEditingController? attachedController,
+  }) {
+    if (attachedController != null) {
+      attachedController.value = TextEditingValue(
+        text: formatter.setNumValue(number),
+        selection: TextSelection.collapsed(offset: formatter.indexOfDot),
+      );
+
+      return attachedController.text;
+    }
+
+    return formatter.setNumValue(number);
+  }
 
   /// Clears underlying Formatter data by:
   /// Setting the formatted value to empty sting;
