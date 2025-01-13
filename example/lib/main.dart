@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import 'package:example/pages/advanced_example_page.dart';
-import 'package:example/pages/rtl_axample_page.dart';
+import 'package:example/pages/rtl_example_page.dart';
 import 'package:flutter/material.dart';
 import 'package:amount_input_formatter/amount_input_formatter.dart';
 
@@ -39,8 +39,8 @@ class GeneralExamplePage extends StatefulWidget {
 class _GeneralExamplePageState extends State<GeneralExamplePage> {
   final _controller = TextEditingController();
   final _formatter = AmountInputFormatter(
-    integralLengthLimiter: 10,
-    integralPartSeparator: ',',
+    integralLength: 10,
+    groupSeparator: ',',
     fractionalDigits: 3,
     decimalSeparator: '.',
   );
