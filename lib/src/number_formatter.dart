@@ -1,239 +1,376 @@
+/// A minimalistic and configurable Number Formatter.
 class NumberFormatter {
-  /// Unicode "Left-To-Right Embedding" (LRE) character.
+  /// The default [NumberFormatter] factory.
+  /// [integralLength] - sets the limit to length of integral part of
+  /// the number. For example here: 11111.222 it will be the 11111
+  /// part before the dot.
+  /// Defaults to 24.
+  /// [groupSeparator] - sets the "thousands" separator symbol that
+  /// should separate an integral part of the number into chunks after a
+  /// certain number of characters.
+  /// Defaults to ','.
+  /// [decimalSeparator] - sets the separator symbol that seats between the
+  /// integral and decimal parts of the number. Typically it's a '.' or an ','
+  /// depending on the language.
+  /// Defaults to '.'.
+  /// [groupedDigits] - The number of digits that should be grouped in
+  /// an integral part of the number before separation. Setting it, for example,
+  /// to 3 for the number 12345.123 will result in the following formatting:
+  /// 12,345.123.
+  /// Defaults to 3.
+  /// [fractionalDigits] - will limit the number of digits after the decimal
+  /// separator.
+  /// Defaults to 3.
+  /// [initialValue] - the initial numerical value that is supplied to the
+  /// formatter and will be processed.
+  factory NumberFormatter({
+    int integralLength = kIntegralLengthLimit,
+    String groupSeparator = kComma,
+    String decimalSeparator = kDot,
+    int fractionalDigits = 3,
+    int groupedDigits = 3,
+    num? initialValue,
+  }) {
+    if (initialValue == null) {
+      return NumberFormatter._(
+        integralLength: integralLength,
+        groupSeparator: groupSeparator,
+        groupedDigits: groupedDigits,
+        decimalSeparator: decimalSeparator,
+        fractionalDigits: fractionalDigits,
+        initialValue: 0,
+        indexOfDot: -1,
+        initialFormattedValue: kEmptyValue,
+      );
+    }
+
+    final doubleParts = initialValue.toDouble().abs().toString().split(kDot);
+
+    return NumberFormatter._(
+      integralLength: integralLength,
+      groupSeparator: groupSeparator,
+      groupedDigits: groupedDigits,
+      decimalSeparator: decimalSeparator,
+      fractionalDigits: fractionalDigits,
+      initialValue: initialValue.toDouble(),
+      initialFormattedValue: '${_processIntegerPart(
+        integerPart: doubleParts.first,
+        thSeparator: groupSeparator,
+        intSpDigits: groupedDigits,
+      )}'
+          '${_processDecimalPart(
+        decimalPart: doubleParts.last,
+        ftlDigits: fractionalDigits,
+        dcSeparator: decimalSeparator,
+      )}',
+      indexOfDot: doubleParts.first.length,
+    );
+  }
+
+  /// [fractionalDigits] sets the inner [ftlDigits]
+  NumberFormatter._({
+    required int integralLength,
+    required String groupSeparator,
+    required String decimalSeparator,
+    required int fractionalDigits,
+    required String initialFormattedValue,
+    required double? initialValue,
+    required int groupedDigits,
+    required int indexOfDot,
+  })  : _intLthLimiter = integralLength,
+        _intSeparator = groupSeparator,
+        _intSpDigits = groupedDigits,
+        _dcSeparator = decimalSeparator,
+        _ftlDigits = fractionalDigits,
+        _formattedNum = initialFormattedValue,
+        _numPattern = RegExp('[^0-9$decimalSeparator]'),
+        _doubleValue = initialValue ?? 0,
+        _indexOfDot = indexOfDot;
+
+  /// Default setting options for the formatter.
+  NumberFormatter.defaultSettings()
+      : _intLthLimiter = kIntegralLengthLimit,
+        _intSeparator = kComma,
+        _dcSeparator = kDot,
+        _ftlDigits = 3,
+        _intSpDigits = 3,
+        _formattedNum = kEmptyValue,
+        _doubleValue = 0,
+        _indexOfDot = -1,
+        _numPattern = RegExp('[^0-9$kDot]');
+
+  /// Unicode "Left-To-Right Embedding" (LRE) character \u202A.
   static const lre = '\u202A';
 
-  /// Unicode "Pop Directional Formatting" (PDF) character.
+  /// Unicode "Pop Directional Formatting" (PDF) character \u202C.
   static const pdf = '\u202C';
 
   /// Default thousands separator used by package.
   static const kComma = ',';
 
-  /// Default decimal separator used by package. Also, used in number parsing.
+  /// Default decimal separator used by package.
   static const kDot = '.';
 
-  static const kIntegralLengthLimit = 13;
+  /// Default length limit of the integral part of the double number.
+  static const kIntegralLengthLimit = 24;
+
+  /// Default empty String value.
   static const kEmptyValue = '';
-  static const _kZeroValue = '0';
 
-  /// [fractionalDigits] sets the inner [_ftlDigits]
-  NumberFormatter._({
-    required int lengthLimiter,
-    required String thousandsSeparator,
-    required String decimalSeparator,
-    required int fractionalDigits,
-    required String initialFormattedValue,
-    double? initialValue,
-  })  : _intLthLimiter = lengthLimiter,
-        _thSeparator = thousandsSeparator,
-        _dcSeparator = decimalSeparator,
-        _ftlDigits = fractionalDigits,
-        _formattedNum = initialFormattedValue,
-        _numValue = initialValue;
+  /// Default value '0' of the number placeholder.
+  static const kZeroValue = '0';
 
-  NumberFormatter.defaultSet()
-      : _intLthLimiter = 13,
-        _thSeparator = kComma,
-        _dcSeparator = kDot,
-        _ftlDigits = 2,
-        _formattedNum = kEmptyValue;
+  /// The length limit of the integral part of the double number.
+  int _intLthLimiter;
 
-  factory NumberFormatter({
-    required int integralLengthLimiter,
-    required String thousandsSeparator,
-    required String decimalSeparator,
-    required int fractionalDigits,
-    num? initialValue,
-  }) {
-    initialValue = initialValue?.toDouble();
-    late String initialFormattedValue;
-    if (initialValue != null) {
-      final doubleParts = initialValue.abs().toString().split(kDot);
-      final nBuilder = StringBuffer(initialValue < 0 ? '-' : '');
+  /// A separator that should be used to split thousands in integral
+  /// part of the number.
+  String _intSeparator;
 
-      List<String> list = [];
-      final integerPart = doubleParts.first;
-      final thBuilder = StringBuffer();
-      for (int i = integerPart.length - 1; i >= 0; i--) {
-        thBuilder.write(integerPart[i]);
-        if (thBuilder.length == 3) {
-          list.add(
-            String.fromCharCodes(thBuilder.toString().codeUnits.reversed),
-          );
-          thBuilder.clear();
-        }
-      }
+  /// The number of digits that should be repeatedly separated in an integral
+  /// part of the number.
+  int _intSpDigits;
 
-      if (thBuilder.isNotEmpty) {
-        list.add(String.fromCharCodes(thBuilder.toString().codeUnits.reversed));
-      }
-      nBuilder.writeAll(
-        list.reversed,
-        thousandsSeparator,
-      );
+  /// A separator that should be used to split decimal number at the
+  /// floating point.
+  String _dcSeparator;
 
-      if (fractionalDigits > 0) {
-        nBuilder.write(decimalSeparator);
-        final decimalPart = doubleParts.last;
-        if (decimalPart.length > fractionalDigits) {
-          nBuilder.write(decimalPart.substring(0, fractionalDigits));
-        } else {
-          nBuilder.write(decimalPart);
-          if (decimalPart.length < fractionalDigits) {
-            for (int i = 0; i < fractionalDigits - decimalPart.length; i++) {
-              nBuilder.write(_kZeroValue);
-            }
-          }
-        }
-      }
-      initialFormattedValue = nBuilder.toString();
-    } else {
-      initialFormattedValue = kEmptyValue;
-    }
-    return NumberFormatter._(
-      lengthLimiter: integralLengthLimiter,
-      thousandsSeparator: thousandsSeparator,
-      decimalSeparator: decimalSeparator,
-      fractionalDigits: fractionalDigits,
-      initialValue: initialValue?.toDouble(),
-      initialFormattedValue: initialFormattedValue,
-    );
-  }
+  /// The length of the fractional part of the decimal number.
+  int _ftlDigits;
 
-  final int _intLthLimiter;
-  final String _thSeparator;
-  final String _dcSeparator;
-  final int _ftlDigits;
   String _formattedNum;
-  double? _numValue;
+  RegExp _numPattern;
+  double _doubleValue;
+  int _indexOfDot;
 
-  set doubleValue(num? number) => _processNumberValue(number);
+  /// The length limit of the integral part of the double number.
+  int get intLthLimiter => _intLthLimiter;
 
-  double? get doubleValue => _numValue;
+  /// A separator that should be used to split thousands in integral
+  /// part of the number.
+  String get intSeparator => _intSeparator;
 
-  String get formattedValue => setTextValue(_formattedNum) ?? kEmptyValue;
+  /// The number of digits that should be repeatedly separated in an integral
+  /// part of the number.
+  int get intSpDigits => _intSpDigits;
 
+  /// A separator that should be used to split decimal number at the
+  /// floating point.
+  String get dcSeparator => _dcSeparator;
+
+  /// The length of the fractional part of the decimal number.
+  int get ftlDigits => _ftlDigits;
+
+  /// Getter for the underlying decimal number, returns 0 in case of
+  /// empty String value.
+  double get doubleValue => _doubleValue;
+
+  /// The current index of the symbol that separates the integral and decimal
+  /// parts of the double value in formatted string.
+  int get indexOfDot => _indexOfDot;
+
+  /// Getter for the formatted String representation of the number.
+  String get formattedValue => _formattedNum;
+
+  /// Wraps the formatted string of the number with Unicode
+  /// "Left-To-Right Embedding" (LRE) and "Pop Directional Formatting" (PDF)
+  /// characters to force the formatted-string-number to be correctly displayed
+  /// left-to-right inside of the otherwise RTL context
   String get ltrEnforcedValue => '$lre$formattedValue$pdf';
 
-  String? setTextValue(String textNumber) {
-    textNumber = textNumber.replaceAll(_thSeparator, kEmptyValue);
-    var doubleParts = textNumber.split(_dcSeparator);
-    if (doubleParts.first.length > _intLthLimiter) return null;
+  /// The length limit of the integral part of the double number.
+  set intLthLimiter(int value) {
+    _intLthLimiter = value;
 
-    if (doubleParts.length == 1) doubleParts.add(kEmptyValue);
-    final number = double.tryParse(
-      '${doubleParts.first}$kDot${doubleParts.last}',
-    );
-    if (number == null) return null;
-
-    _numValue = number;
-    doubleParts = number.abs().toString().split(kDot);
-    final builder = StringBuffer(number < 0 ? '-' : '');
-    builder.writeAll(_processIntegerPart(doubleParts.first), _thSeparator);
-    builder.write(_processDecimalPart(doubleParts.last));
-
-    return _formattedNum = builder.toString();
+    processTextValue(textInput: _formattedNum);
   }
 
-  String? setDoubleValue(num? number) => _processNumberValue(number);
+  /// A separator that should be used to split thousands in integral
+  /// part of the number.
+  set intSeparator(String value) {
+    _intSeparator = value;
 
-  String? decimalPartEdit({
-    required String textNumber,
-    required int indexOfDot,
-    required int baseOffset,
-  }) =>
-      _decimalPartEdit(
-        textNumber,
-        indexOfDot,
-        baseOffset,
-      );
-
-  void clearFormatter() {
-    _numValue = null;
-    _formattedNum = kEmptyValue;
+    processTextValue(textInput: _formattedNum);
   }
 
-  String _processNumberValue(num? number) {
-    if (number == null) {
-      _numValue = null;
+  /// The number of digits that should be repeatedly separated in an integral
+  /// part of the number.
+  set intSpDigits(int value) {
+    _intSpDigits = value;
+
+    processTextValue(textInput: _formattedNum);
+  }
+
+  /// A separator that should be used to split decimal number at the
+  /// floating point.
+  set dcSeparator(String value) {
+    _dcSeparator = value;
+
+    processTextValue(textInput: _formattedNum);
+  }
+
+  /// The length of the fractional part of the decimal number.
+  set ftlDigits(int value) {
+    _ftlDigits = value;
+
+    processTextValue(textInput: _formattedNum);
+  }
+
+  /// This method should be used to process the integral part of the
+  /// double number.
+  /// It will iterate on the integral part from right to left and write each
+  /// character into buffer separating the integral part after [intSpDigits]
+  /// number of characters.
+  static String _processIntegerPart({
+    required String integerPart,
+    required String thSeparator,
+    required int intSpDigits,
+  }) {
+    if (integerPart.length < intSpDigits) return integerPart;
+
+    final intBuffer = StringBuffer();
+    for (var i = 1; i <= integerPart.length; i++) {
+      intBuffer.write(integerPart[integerPart.length - i]);
+
+      if (i % intSpDigits == 0 && i != integerPart.length) {
+        intBuffer.write(thSeparator);
+      }
+    }
+
+    // As the writes to buffer was made in reversed order it should
+    // be reversed back.
+    return String.fromCharCodes(intBuffer.toString().codeUnits.reversed);
+  }
+
+  /// This method should be used to process the decimal part of the
+  /// double number.
+  /// It will iterate on the decimal part from left to right and truncate it or
+  /// add '0' until the number of characters is equal to [ftlDigits]
+  static String _processDecimalPart({
+    required String decimalPart,
+    required int ftlDigits,
+    required String dcSeparator,
+  }) {
+    if (ftlDigits <= 0) return kEmptyValue;
+
+    if (decimalPart.length > ftlDigits) {
+      return '$dcSeparator${decimalPart.substring(0, ftlDigits)}';
+    } else if (decimalPart.length == ftlDigits) {
+      return '$dcSeparator$decimalPart';
+    }
+
+    return '$dcSeparator$decimalPart'
+        '${kZeroValue * (ftlDigits - decimalPart.length)}';
+  }
+
+  String _processNumberValue({
+    double? inputNumber,
+    List<String>? doubleParts,
+  }) {
+    if (inputNumber == null) {
+      _doubleValue = 0;
       return _formattedNum = kEmptyValue;
     }
 
-    number = _numValue = number.toDouble();
-    final doubleParts = number.abs().toString().split(kDot);
-    final builder = StringBuffer(number < 0 ? '-' : '');
-    builder.writeAll(_processIntegerPart(doubleParts.first), _thSeparator);
-    builder.write(_processDecimalPart(doubleParts.last));
+    _doubleValue = inputNumber;
+    doubleParts ??= inputNumber.abs().toString().split(kDot);
 
-    return _formattedNum = builder.toString();
+    // Set the index of dot to the length of the integral part of the number.
+    _indexOfDot = doubleParts.first.length;
+
+    return _formattedNum = '${_processIntegerPart(
+      integerPart: doubleParts.first,
+      thSeparator: intSeparator,
+      intSpDigits: intSpDigits,
+    )}'
+        '${_processDecimalPart(
+      decimalPart: doubleParts.last,
+      ftlDigits: ftlDigits,
+      dcSeparator: dcSeparator,
+    )}';
   }
 
-  Iterable<String> _processIntegerPart(String integerPart) {
-    List<String> list = [];
-    final builder = StringBuffer();
-    for (int i = integerPart.length - 1; i >= 0; i--) {
-      builder.write(integerPart[i]);
-      if (builder.length == 3) {
-        list.add(String.fromCharCodes(builder.toString().codeUnits.reversed));
-        builder.clear();
+  /// This method should be used to process the text input.
+  /// It'll remove all unallowed characters from the string and try to convert
+  /// it to the double value.
+  String? processTextValue({
+    required String textInput,
+  }) {
+    // Case when text input is deleted completely or is initially empty.
+    if (textInput.isEmpty) {
+      _indexOfDot = 1;
+      _doubleValue = 0;
+      return _formattedNum = '$kZeroValue.${kZeroValue * ftlDigits}';
+    }
+
+    final doubleParts = textInput
+        .replaceAll(
+          _numPattern,
+          kEmptyValue,
+        )
+        .split(dcSeparator);
+
+    // In case if there is no decimal part in the provided string
+    // representation of number.
+    if (doubleParts.length == 1) {
+      doubleParts.add(kEmptyValue);
+
+      // It might be the case that the user deleted the decimal point or part of
+      // the input with a decimal point was deleted with the selection range.
+      // In this case, the decimal part should be zeroed.
+      if (ftlDigits > 0 &&
+          _indexOfDot > 0 &&
+          _indexOfDot < doubleParts.first.length) {
+        doubleParts.first = doubleParts.first.substring(0, _indexOfDot);
+      }
+    } else if (doubleParts.last.length > ftlDigits) {
+      doubleParts.last = doubleParts.last.substring(0, ftlDigits);
+    }
+
+    // In case if integral part is longer than allowed abort the formatting.
+    if (doubleParts.first.length > intLthLimiter) return null;
+
+    // Checks if the integer part is empty, and sets the value to '0' if true.
+    if (doubleParts.first.isEmpty) {
+      doubleParts.first = kZeroValue;
+    } else if (doubleParts.first[0] == kZeroValue &&
+        doubleParts.first.length > 1) {
+      var index = -1;
+
+      for (var i = 0; i < doubleParts.first.length; i++) {
+        if (doubleParts.first[i] != kZeroValue) break;
+
+        index = i;
+      }
+
+      if (index >= 0) {
+        doubleParts.first = doubleParts.first.substring(index + 1);
       }
     }
 
-    if (builder.isNotEmpty) {
-      list.add(String.fromCharCodes(builder.toString().codeUnits.reversed));
-    }
-    return list.reversed;
-  }
-
-  String _processDecimalPart(String decimalPart) {
-    if (_ftlDigits <= 0) return kEmptyValue;
-
-    if (decimalPart.length > _ftlDigits) {
-      return '$_dcSeparator${decimalPart.substring(0, _ftlDigits)}';
-    } else if (decimalPart.length == _ftlDigits) {
-      return '$_dcSeparator$decimalPart';
-    }
-
-    final builder = StringBuffer('$_dcSeparator$decimalPart');
-    for (int i = 0; i < _ftlDigits - decimalPart.length; i++) {
-      builder.write(_kZeroValue);
-    }
-    return builder.toString();
-  }
-
-  String? _decimalPartEdit(
-    String textNumber,
-    int indexOfDot,
-    int baseOffset,
-  ) {
-    var textNum = textNumber;
-    var indexOfDot = textNum.indexOf(_dcSeparator);
-
-    if (indexOfDot < 0 && _formattedNum.contains(_dcSeparator)) {
-      textNum = textNum.substring(0, baseOffset);
-    }
-    textNum = textNum.replaceAll(_thSeparator, kEmptyValue);
-    var doubleParts = textNum.split(_dcSeparator);
-
-    if (doubleParts.length == 1) doubleParts.add(kEmptyValue);
-    if (doubleParts.last.length > _ftlDigits) return null;
-
-    final number = double.tryParse(
-      '${doubleParts.first}$kDot${doubleParts.last}',
+    return _processNumberValue(
+      inputNumber: double.tryParse(
+        '${doubleParts.first}$kDot${doubleParts.last}',
+      ),
+      doubleParts: doubleParts,
     );
-    if (number == null) return null;
+  }
 
-    final decimalPart = doubleParts.last;
-    doubleParts = number.abs().toString().split(kDot);
-    _numValue = number;
-    final builder = StringBuffer(number < 0 ? '-' : '');
-    builder.writeAll(_processIntegerPart(doubleParts.first), _thSeparator);
-    if (indexOfDot < 0) {
-      builder.write(_processDecimalPart(doubleParts.last));
-    } else {
-      builder.write(_dcSeparator);
-      builder.write(indexOfDot == textNumber.length - 1 ? '' : decimalPart);
-    }
+  /// This method will process and format the given numerical value through the
+  /// formatter.
+  /// Returns the formatted string representation of the number.
+  String setNumValue(num number) => _processNumberValue(
+        inputNumber: number.toDouble(),
+      );
 
-    return _formattedNum = builder.toString();
+  /// Clears Formatter data by:
+  /// Setting the formatted value to empty sting;
+  /// Setting the double value to 0;
+  /// Setting the index of the decimal floating point to -1.
+  /// Formatter settings will remain unchanged.
+  String clear() {
+    _doubleValue = 0;
+    _indexOfDot = -1;
+    return _formattedNum = kEmptyValue;
   }
 }
