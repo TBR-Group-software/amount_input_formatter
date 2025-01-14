@@ -1,8 +1,25 @@
 name: amount_input_formatter
-description: "A minimalistic and configurable number formatter"
+description: "A minimalistic and configurable number formatter to use with the TextField widget."
 version: 0.1.0
 repository: https://github.com/TBR-Group-software/amount_input_formatter
 issue_tracker: https://github.com/TBR-Group-software/amount_input_formatter/issues
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+screenshots:
+  - description: 'This screenshot shows the result example of usage of the package'
+    path: assets/screenshots/example.png
+
+topics:
+  - formatter
+  - util
+  - string
 
 environment:
   sdk: '>=2.12.0 <4.0.0'
