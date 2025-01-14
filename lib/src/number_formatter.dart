@@ -300,7 +300,9 @@ class NumberFormatter {
     if (textInput.isEmpty) {
       _indexOfDot = 1;
       _doubleValue = 0;
-      return _formattedNum = '$kZeroValue.${kZeroValue * ftlDigits}';
+      return _formattedNum = '$kZeroValue'
+          '${_ftlDigits > 0 ? _dcSeparator : ''}'
+          '${kZeroValue * _ftlDigits}';
     }
 
     final doubleParts = textInput
