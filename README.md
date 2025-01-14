@@ -23,7 +23,7 @@ This package intends to provide minimalistic, configurable, and convenient funct
 
 ## Be Aware
 
-While this package mainly operates on `String` values it also provides access to the `double` value of the formatted decimal number as well as number parsing, so it is susceptible to the issues that are tied to Dart's standard `double` implementation as it is based on the IEEE 754 standard for floating-point arithmetic, which has a finite precision. As a result, some numbers cannot be represented exactly, leading to small rounding errors in calculations.
+While this package mainly operates on String values it also provides access to the double value of the formatted decimal number, as well as number parsing. So it is susceptible to issues that are tied to Dart's standard double implementation. It is based on the IEEE 754 standard for floating-point arithmetic, which has a finite precision. As a result, some numbers cannot be represented exactly, leading to small rounding errors in calculations.
 
 <b>But</b> you should be alright as long as the maximum precision of fractional digits needed for your case is under four digits. </br>
 If not, or if you need to perform mathematical operations on decimals, then you should consider developing a custom solution using something in line with the [`decimal`](https://pub.dev/packages/decimal).
