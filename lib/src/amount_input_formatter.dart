@@ -32,6 +32,7 @@ class AmountInputFormatter extends TextInputFormatter {
     String decimalSeparator = NumberFormatter.kDot,
     int groupedDigits = 3,
     int fractionalDigits = 3,
+    bool isEmptyAllowed = false,
     num? initialValue,
   }) {
     return AmountInputFormatter.withFormatter(
@@ -42,6 +43,7 @@ class AmountInputFormatter extends TextInputFormatter {
         groupedDigits: groupedDigits,
         decimalSeparator: decimalSeparator,
         fractionalDigits: fractionalDigits,
+        isEmptyAllowed: isEmptyAllowed,
       ),
     );
   }
@@ -69,14 +71,24 @@ class AmountInputFormatter extends TextInputFormatter {
   /// left-to-right inside of the otherwise RTL context
   String get ltrEnforcedValue => formatter.ltrEnforcedValue;
 
+  /// A boolean flag that controls if clearing the whole formatted value
+  /// is allowed.
+  /// If false clearing the whole [TextField] will set the text
+  /// value to "0.[ftlDigits * 0]"
+  bool get isEmptyAllowed => formatter.isEmptyAllowed;
+
   int _calculateSelectionOffset({
     required TextEditingValue oldValue,
     required TextEditingValue newValue,
     required String newText,
   }) {
+    if (newText.isEmpty) return 0;
+
     // Assuming that it is the start of the input set the selection to the end
     // of the integer part.
-    if (oldValue.selection.baseOffset <= 1 && formatter.doubleValue <= 9) {
+    if (oldValue.selection.baseOffset <= 1 &&
+        (formatter.doubleValue == 0 ||
+            (formatter.doubleValue <= 9 && formatter.previousValue <= 9))) {
       return formatter.indexOfDot;
     }
 
