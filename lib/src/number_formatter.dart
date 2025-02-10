@@ -29,6 +29,7 @@ class NumberFormatter {
     String decimalSeparator = kDot,
     int fractionalDigits = 3,
     int groupedDigits = 3,
+    bool isEmptyAllowed = false,
     num? initialValue,
   }) {
     if (initialValue == null) {
@@ -41,6 +42,7 @@ class NumberFormatter {
         initialValue: 0,
         indexOfDot: -1,
         initialFormattedValue: kEmptyValue,
+        isEmptyAllowed: isEmptyAllowed,
       );
     }
 
@@ -53,6 +55,7 @@ class NumberFormatter {
       decimalSeparator: decimalSeparator,
       fractionalDigits: fractionalDigits,
       initialValue: initialValue.toDouble(),
+      isEmptyAllowed: isEmptyAllowed,
       initialFormattedValue: '${_processIntegerPart(
         integerPart: doubleParts.first,
         thSeparator: groupSeparator,
@@ -77,14 +80,16 @@ class NumberFormatter {
     required double? initialValue,
     required int groupedDigits,
     required int indexOfDot,
-  })  : _intLthLimiter = integralLength,
+    required bool isEmptyAllowed,
+  })  : _isEmptyAllowed = isEmptyAllowed,
+        _intLthLimiter = integralLength,
         _intSeparator = groupSeparator,
         _intSpDigits = groupedDigits,
         _dcSeparator = decimalSeparator,
         _ftlDigits = fractionalDigits,
         _formattedNum = initialFormattedValue,
         _numPattern = RegExp('[^0-9$decimalSeparator]'),
-        _doubleValue = initialValue ?? 0,
+        _currentValue = initialValue ?? 0,
         _indexOfDot = indexOfDot;
 
   /// Default setting options for the formatter.
@@ -95,9 +100,10 @@ class NumberFormatter {
         _ftlDigits = 3,
         _intSpDigits = 3,
         _formattedNum = kEmptyValue,
-        _doubleValue = 0,
+        _currentValue = 0,
         _indexOfDot = -1,
-        _numPattern = RegExp('[^0-9$kDot]');
+        _numPattern = RegExp('[^0-9$kDot]'),
+        _isEmptyAllowed = false;
 
   /// Unicode "Left-To-Right Embedding" (LRE) character \u202A.
   static const lre = '\u202A';
@@ -138,10 +144,15 @@ class NumberFormatter {
   /// The length of the fractional part of the decimal number.
   int _ftlDigits;
 
+  /// Determines if the empty string is allowed for this formatter, or if
+  /// the empty value should be a formatted zero.
+  bool _isEmptyAllowed;
+
   String _formattedNum;
   RegExp _numPattern;
-  double _doubleValue;
+  double _currentValue;
   int _indexOfDot;
+  double _previousValue = 0;
 
   /// The length limit of the integral part of the double number.
   int get intLthLimiter => _intLthLimiter;
@@ -165,12 +176,23 @@ class NumberFormatter {
   /// empty String value.
   double get doubleValue => _doubleValue;
 
+  /// Getter for retrieving the double value one input before the current one.
+  /// In case there was no previous inputs returns 0.
+  double get previousValue => _previousValue;
+
   /// The current index of the symbol that separates the integral and decimal
   /// parts of the double value in formatted string.
   int get indexOfDot => _indexOfDot;
 
   /// Getter for the formatted String representation of the number.
   String get formattedValue => _formattedNum;
+
+  /// Determines if the empty string is allowed for this formatter, or if
+  /// the empty value should be a formatted zero.
+  bool get isEmptyAllowed => _isEmptyAllowed;
+
+  /// Private getter for the current double value of the formatter.
+  double get _doubleValue => _currentValue;
 
   /// Wraps the formatted string of the number with Unicode
   /// "Left-To-Right Embedding" (LRE) and "Pop Directional Formatting" (PDF)
@@ -214,6 +236,22 @@ class NumberFormatter {
     _ftlDigits = value;
 
     processTextValue(textInput: _formattedNum);
+  }
+
+  /// Determines if the empty string is allowed for this formatter, or if
+  /// the empty value should be a formatted zero.
+  set isEmptyAllowed(bool value) {
+    _isEmptyAllowed = value;
+
+    processTextValue(textInput: _formattedNum);
+  }
+
+  /// Setter for the current double value of the formatter.
+  /// Saves the current value of the formatter to the [_previousValue] variable
+  /// before replacing it with a new one.
+  set _doubleValue(double value) {
+    _previousValue = _currentValue;
+    _currentValue = value;
   }
 
   /// This method should be used to process the integral part of the
@@ -290,6 +328,23 @@ class NumberFormatter {
     )}';
   }
 
+  String _processEmptyValue({
+    required String textInput,
+    required bool isEmptyAllowed,
+  }) {
+    _doubleValue = 0;
+
+    if (isEmptyAllowed) {
+      _indexOfDot = -1;
+      return _formattedNum = kEmptyValue;
+    }
+
+    _indexOfDot = 1;
+    return _formattedNum = '$kZeroValue'
+        '${_ftlDigits > 0 ? _dcSeparator : ''}'
+        '${kZeroValue * _ftlDigits}';
+  }
+
   /// This method should be used to process the text input.
   /// It'll remove all unallowed characters from the string and try to convert
   /// it to the double value.
@@ -298,11 +353,10 @@ class NumberFormatter {
   }) {
     // Case when text input is deleted completely or is initially empty.
     if (textInput.isEmpty) {
-      _indexOfDot = 1;
-      _doubleValue = 0;
-      return _formattedNum = '$kZeroValue'
-          '${_ftlDigits > 0 ? _dcSeparator : ''}'
-          '${kZeroValue * _ftlDigits}';
+      return _processEmptyValue(
+        textInput: textInput,
+        isEmptyAllowed: isEmptyAllowed,
+      );
     }
 
     final doubleParts = textInput
@@ -345,6 +399,8 @@ class NumberFormatter {
         index = i;
       }
 
+      if (index == doubleParts.first.length - 1) index -= 1;
+
       if (index >= 0) {
         doubleParts.first = doubleParts.first.substring(index + 1);
       }
@@ -371,8 +427,9 @@ class NumberFormatter {
   /// Setting the index of the decimal floating point to -1.
   /// Formatter settings will remain unchanged.
   String clear() {
-    _doubleValue = 0;
-    _indexOfDot = -1;
-    return _formattedNum = kEmptyValue;
+    return _processEmptyValue(
+      textInput: '',
+      isEmptyAllowed: true,
+    );
   }
 }
