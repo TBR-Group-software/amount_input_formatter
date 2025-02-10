@@ -79,6 +79,15 @@ class _AdvancedExamplePageState extends State<AdvancedExamplePage> {
               _controller.syncWithFormatter(formatter: _formatter);
             },
           ),
+          const SizedBox(height: 20),
+          EmptyValueController(
+            initialValue: _formatter.isEmptyAllowed,
+            onChanged: (isAllowed) {
+              _formatter.formatter.isEmptyAllowed = isAllowed;
+
+              _controller.syncWithFormatter(formatter: _formatter);
+            },
+          ),
           const SizedBox(height: 50),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 36),
@@ -212,6 +221,43 @@ class ControlsRowWidget extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class EmptyValueController extends StatefulWidget {
+  const EmptyValueController({
+    super.key,
+    required this.initialValue,
+    required this.onChanged,
+  });
+
+  final bool initialValue;
+  final void Function(bool) onChanged;
+
+  @override
+  State<EmptyValueController> createState() => _EmptyValueControllerState();
+}
+
+class _EmptyValueControllerState extends State<EmptyValueController> {
+  late bool value = widget.initialValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text('Allow empty value: '),
+        Switch(
+          value: value,
+          onChanged: (value) {
+            setState(() {
+              this.value = value;
+              widget.onChanged(this.value);
+            });
+          },
+        ),
+      ],
     );
   }
 }
