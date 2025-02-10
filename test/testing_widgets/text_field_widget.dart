@@ -5,17 +5,23 @@ class TextFieldWidget extends StatefulWidget {
   const TextFieldWidget({
     Key? key,
     this.initialValue,
+    this.controller,
+    this.formatter,
   }) : super(key: key);
 
   final num? initialValue;
+  final TextEditingController? controller;
+  final AmountInputFormatter? formatter;
 
   @override
   State<TextFieldWidget> createState() => TextFieldWidgetState();
 }
 
 class TextFieldWidgetState extends State<TextFieldWidget> {
-  final AmountInputFormatter formatter = AmountInputFormatter();
-  final TextEditingController controller = TextEditingController();
+  late final AmountInputFormatter formatter =
+      widget.formatter ?? AmountInputFormatter();
+  late final TextEditingController controller =
+      widget.controller ?? TextEditingController();
 
   @override
   void initState() {
