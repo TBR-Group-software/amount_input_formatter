@@ -1,6 +1,6 @@
 name: amount_input_formatter
 description: "A minimalistic and configurable number formatter to use with the TextField widget."
-version: 0.2.0
+version: 0.2.1
 repository: https://github.com/TBR-Group-software/amount_input_formatter
 issue_tracker: https://github.com/TBR-Group-software/amount_input_formatter/issues?q=is%3Aissue%20state%3Aopen%20
 

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 /// Extension on [TextEditingController] that provides methods to use in
 /// conjunction with [AmountInputFormatter] class.
-extension TextControllerExtension on TextEditingController {
+extension FormatterTextControllerExtension on TextEditingController {
   /// Formats and sets the current text of the [TextField] widget to which the
   /// called controller is attached.
   /// Returns the set text value.

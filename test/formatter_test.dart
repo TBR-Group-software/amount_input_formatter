@@ -1,5 +1,4 @@
 import 'package:amount_input_formatter/amount_input_formatter.dart';
-import 'package:amount_input_formatter/src/amount_input_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -7,14 +6,15 @@ import 'testing_widgets/text_field_widget.dart';
 
 void main() {
   group(
-    'A set of tests to check on formatter functionalities.',
+    'A set of tests to check on formatter helper functions.',
     () {
       final formatter = AmountInputFormatter(
         initialValue: 1111112.11,
       );
 
       test(
-        'Initially set a number value with the new value set.',
+        'Change the initially set value with a new value using the "setNumber" '
+        'method.',
         () {
           expect(formatter.formattedValue, '1,111,112.110');
           expect(formatter.doubleValue, 1111112.11);
@@ -26,7 +26,7 @@ void main() {
       );
 
       test(
-        'Clear formatter and them set a number for the empty formatter.',
+        'Clear formatter and then set a number for the empty formatter.',
         () {
           formatter
             ..clear()
@@ -38,77 +38,85 @@ void main() {
     },
   );
 
-  test(
-    'Initially set a value with no fractional digits, and edit afterwards.',
+  group(
+    'A set of tests that emulate editing by supplying TextEditingValue '
+    'directly to the formatter.',
     () {
-      final formatter = AmountInputFormatter(
-        initialValue: 89898999,
-        fractionalDigits: 0,
+      test(
+        'Initially set a value with no fractional digits, and emulated editing '
+        'afterward using the TextEditingValue to mock input.',
+        () {
+          final formatter = AmountInputFormatter(
+            initialValue: 89898999,
+            fractionalDigits: 0,
+          );
+
+          const originalText = '89,898,999';
+          expect(formatter.formattedValue, originalText);
+          expect(formatter.doubleValue, 89898999);
+
+          const newText = '89,898,99';
+          formatter.formatEditUpdate(
+            const TextEditingValue(
+              text: originalText,
+              selection: TextSelection.collapsed(offset: originalText.length),
+            ),
+            const TextEditingValue(
+              text: newText,
+              selection: TextSelection.collapsed(offset: newText.length),
+            ),
+          );
+          expect(formatter.formattedValue, '8,989,899');
+          expect(formatter.doubleValue, 8989899.0);
+        },
       );
 
-      const originalText = '89,898,999';
-      expect(formatter.formattedValue, originalText);
-      expect(formatter.doubleValue, 89898999);
+      test(
+        'Initially, set a value; edit it with the decimal separator removal. '
+        'In this case, the decimal part should be zeroed.',
+        () {
+          final formatter = AmountInputFormatter(
+            initialValue: 12345.098767,
+            fractionalDigits: 4,
+            groupSeparator: ' ',
+          );
 
-      const newText = '89,898,99';
-      formatter.formatEditUpdate(
-        const TextEditingValue(
-          text: originalText,
-          selection: TextSelection.collapsed(offset: originalText.length),
-        ),
-        const TextEditingValue(
-          text: newText,
-          selection: TextSelection.collapsed(offset: newText.length),
-        ),
+          const originalText = '12 345.0987';
+          expect(formatter.doubleValue, 12345.098767);
+          expect(formatter.formattedValue, originalText);
+
+          formatter.formatEditUpdate(
+            const TextEditingValue(
+              text: originalText,
+              selection: TextSelection.collapsed(offset: 6),
+            ),
+            const TextEditingValue(
+              text: '12 3450987',
+              selection: TextSelection.collapsed(offset: 5),
+            ),
+          );
+          expect(formatter.formattedValue, '12 345.0000');
+          expect(formatter.doubleValue, 12345.0);
+        },
       );
-      expect(formatter.formattedValue, '8,989,899');
-      expect(formatter.doubleValue, 8989899.0);
-    },
-  );
 
-  test(
-    'Initially, set a value; edit it with the decimal separator removal.',
-    () {
-      final formatter = AmountInputFormatter(
-        initialValue: 12345.098767,
-        fractionalDigits: 4,
-        groupSeparator: ' ',
+      test(
+        'Copy-paste with truncation of the longer decimal part.',
+        () {
+          final formatter = AmountInputFormatter(
+            fractionalDigits: 6,
+          )..formatEditUpdate(
+              TextEditingValue.empty,
+              const TextEditingValue(
+                text: '123456789.987654321',
+                selection: TextSelection.collapsed(offset: 11),
+              ),
+            );
+
+          expect(formatter.formattedValue, '123,456,789.987654');
+          expect(formatter.doubleValue, 123456789.987654);
+        },
       );
-
-      const originalText = '12 345.0987';
-      expect(formatter.doubleValue, 12345.098767);
-      expect(formatter.formattedValue, originalText);
-
-      formatter.formatEditUpdate(
-        const TextEditingValue(
-          text: originalText,
-          selection: TextSelection.collapsed(offset: 6),
-        ),
-        const TextEditingValue(
-          text: '12 3450987',
-          selection: TextSelection.collapsed(offset: 5),
-        ),
-      );
-      expect(formatter.formattedValue, '12 345.0000');
-      expect(formatter.doubleValue, 12345.0);
-    },
-  );
-
-  test(
-    'Copy-paste with truncation of the longer decimal part.',
-    () {
-      final formatter = AmountInputFormatter(
-        fractionalDigits: 6,
-      )..formatEditUpdate(
-          TextEditingValue.empty,
-          const TextEditingValue(
-            text: '123456789.987654321',
-            selection: TextSelection.collapsed(offset: 11),
-          ),
-        );
-
-      expect(formatter.formattedValue, '123,456,789.987654');
-      expect(formatter.doubleValue, 123456789.987654);
     },
   );
 
@@ -154,8 +162,53 @@ void main() {
       );
 
       testWidgets(
+        'A test to check if the TextEditingController and AmountInputFormatter '
+        'syncing helper methods work correctly.',
+        (tester) async {
+          final controller = TextEditingController();
+          final formatter = AmountInputFormatter(
+            fractionalDigits: 1,
+          );
+          final textFieldPage = TextFieldWidget(
+            formatter: formatter,
+            controller: controller,
+          );
+
+          await tester.pumpWidget(textFieldPage);
+          formatter.setNumber(
+            4123.321,
+            attachedController: controller,
+          );
+
+          const formattingResult1 = '4,123.3';
+          expect(controller.text, formattingResult1);
+          expect(find.text(formattingResult1), findsOneWidget);
+          expect(formatter.doubleValue, 4123.321);
+
+          controller.setAndFormatText(
+            text: '99.099',
+            formatter: formatter,
+          );
+
+          const formattingResult2 = '99.0';
+          expect(controller.text, formattingResult2);
+          expect(find.text(formattingResult2), findsOneWidget);
+          expect(formatter.doubleValue, 99.0);
+
+          formatter.setNumber(232323);
+          controller.syncWithFormatter(formatter: formatter);
+
+          const formattingResult3 = '232,323.0';
+          expect(controller.text, formattingResult3);
+          expect(find.text(formattingResult3), findsOneWidget);
+          expect(formatter.doubleValue, 232323.0);
+        },
+      );
+
+      testWidgets(
         'Set the initial value for the formatter and sync with '
-        'TextEditingController attached to TextField.',
+        'TextEditingController attached to TextField using the setNumber '
+        'method in the widget`s initState method.',
         (tester) async {
           final key = GlobalKey<TextFieldWidgetState>();
           final textFieldPage = TextFieldWidget(
@@ -180,7 +233,8 @@ void main() {
       );
 
       testWidgets(
-        'Emulation of "Delete" button behavior on Windows devices.',
+        'Emulation of "Delete" button behavior on Windows devices. In this '
+        'case, a character to the right of the cursor will be deleted.',
         (tester) async {
           final controller = TextEditingController();
           final formatter = AmountInputFormatter(
@@ -268,6 +322,8 @@ void main() {
           expect(find.text(formattingResult2), findsOneWidget);
           expect(formatter.doubleValue, 0);
 
+          // Dynamically setting formatter parameters requires syncing with
+          // the associated controller.
           formatter.formatter.isEmptyAllowed = false;
           controller.syncWithFormatter(formatter: formatter);
 
@@ -275,6 +331,35 @@ void main() {
           expect(controller.text, formattingResult3);
           expect(find.text(formattingResult3), findsOneWidget);
           expect(formatter.doubleValue, 0);
+        },
+      );
+
+      testWidgets(
+        'Entering a zero into a TextField with an attached formatter that was '
+        'empty or had a double value equal to zero should move the current to '
+        'the position after the decimal separator.',
+        (tester) async {
+          final controller = TextEditingController();
+          final formatter = AmountInputFormatter();
+          final textFieldPage = TextFieldWidget(
+            formatter: formatter,
+            controller: controller,
+          );
+
+          await tester.pumpWidget(textFieldPage);
+
+          const formattingResult1 = '';
+          expect(controller.text, formattingResult1);
+          expect(find.text(formattingResult1), findsOneWidget);
+          expect(formatter.doubleValue, 0);
+
+          await tester.enterText(find.byType(TextField), '0');
+
+          const formattingResult2 = '0.000';
+          expect(controller.text, formattingResult2);
+          expect(find.text(formattingResult2), findsOneWidget);
+          expect(formatter.doubleValue, 0);
+          expect(controller.value.selection.baseOffset, 2);
         },
       );
     },
