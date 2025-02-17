@@ -82,13 +82,27 @@ class AmountInputFormatter extends TextInputFormatter {
     required TextEditingValue newValue,
     required String newText,
   }) {
-    if (newText.isEmpty) return 0;
-
     // Assuming that it is the start of the input set the selection to the end
     // of the integer part.
+    if (oldValue.selection.baseOffset <= 1 && formatter.doubleValue <= 9) {
+      if (newText.isEmpty) return 0;
+
+      if (formatter.doubleValue == 0) {
+        if (formatter.previousValue == 0 &&
+            formatter.ftlDigits > 0 &&
+            (newValue.selection.baseOffset > 1 || oldValue.text.isEmpty)) {
+          return formatter.indexOfDot + 1;
+        }
+
+        return formatter.indexOfDot;
+      }
+    }
+
+    // Assuming that it is the start of the input set the selection to the
+    // end of the integer part.
     if (oldValue.selection.baseOffset <= 1 &&
-        (formatter.doubleValue == 0 ||
-            (formatter.doubleValue <= 9 && formatter.previousValue <= 9))) {
+        formatter.doubleValue <= 9 &&
+        formatter.previousValue <= 9) {
       return formatter.indexOfDot;
     }
 
@@ -165,16 +179,14 @@ class AmountInputFormatter extends TextInputFormatter {
     num number, {
     TextEditingController? attachedController,
   }) {
-    if (attachedController != null) {
-      attachedController.value = TextEditingValue(
-        text: formatter.setNumValue(number),
-        selection: TextSelection.collapsed(offset: formatter.indexOfDot),
-      );
+    if (attachedController == null) return formatter.setNumValue(number);
 
-      return attachedController.text;
-    }
+    attachedController.value = TextEditingValue(
+      text: formatter.setNumValue(number),
+      selection: TextSelection.collapsed(offset: formatter.indexOfDot),
+    );
 
-    return formatter.setNumValue(number);
+    return attachedController.text;
   }
 
   /// Clears underlying Formatter data by:

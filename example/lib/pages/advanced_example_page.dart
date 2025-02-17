@@ -111,6 +111,10 @@ class _AdvancedExamplePageState extends State<AdvancedExamplePage> {
                         Text(
                           'Formatted value: ${_formatter.formattedValue}',
                         ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Controller offset: ${_controller.value.selection.baseOffset}',
+                        ),
                       ],
                     );
                   },
